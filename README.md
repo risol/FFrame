@@ -1,107 +1,73 @@
 # FFrame
 
-**Desktop-first adaptive application layout for Flutter.**
+**A desktop-first UI framework for Flutter.**
 
-FFrame fills the space between Flutter's low-level layout primitives and UI libraries such as Material, Forui, and Fluent. It provides grids, resizable panes, adaptive workspaces, and shell regions while leaving buttons, forms, themes, and navigation visuals to your app.
+FFrame provides adaptive desktop layouts, resizable workspaces, shared control behavior, and design-system contracts. Use `fframe_layout` for structural layouts, or build an application with the `fframe` API and a visual system.
+
+## Packages
+
+| Package | Responsibility |
+| --- | --- |
+| [`fframe`](packages/fframe) | Application-facing FFrame API: composition primitives, shared controls, app host, and public exports |
+| [`fframe_layout`](packages/fframe_layout) | Design-system-agnostic grid, panes, adaptive layout, workspace, shell, and overlay placement |
+| [`fframe_design`](packages/fframe_design) | Tokens, state model, style resolver contracts, and inherited theme scope |
+| [`fframe_wpf`](packages/fframe_wpf) | WPF-inspired Windows desktop visual system |
+
+The packages target Flutter 3.22+ and Dart 3.4+. The layout package has no third-party runtime dependencies.
+
+## Use FFrame layouts
 
 ```dart
 import 'package:fframe/fframe.dart';
 
 FWorkspace(
-  navigation: FWorkspacePane(child: MyNavigation()),
-  content: MyEditor(),
-  inspector: FWorkspacePane(child: MyInspector()),
+  navigation: FWorkspacePane(child: const FText('Navigation')),
+  content: const FText('Editor'),
+  inspector: FWorkspacePane(child: const FText('Inspector')),
 )
 ```
 
-## Features
-
-- Fixed, auto, and flex tracks in `FGrid`, including cell spans and gaps
-- Resizable horizontal and vertical `FSplitView` panes
-- Pointer and keyboard splitter controls with semantics
-- Constraint-based adaptive builders and visibility
-- Responsive `FWorkspace`, `FDesktopShell`, and `FDockLayout`
-- UI-library-agnostic core with an optional Material adapter
-- Anchored overlay placement with flip and viewport clamping
-
-## Install
-
-```yaml
-dependencies:
-  fframe: ^0.1.0
-```
-
-Core requires Flutter 3.22 or later and has no third-party runtime dependencies. Material helpers are imported separately:
+## Use the WPF visual system and shared controls
 
 ```dart
 import 'package:fframe/fframe.dart';
-import 'package:fframe/material.dart';
+import 'package:fframe_wpf/fframe_wpf.dart';
+
+void main() => runFFrameApp(
+      FFrameApp(
+        designSystem: FWpfDesignSystem.light(),
+        home: FPanel(
+          child: FButton(
+            variant: FButtonVariant.primary,
+            onPressed: () {},
+            child: const FText('Save'),
+          ),
+        ),
+      ),
+    );
 ```
 
-## Grid
+Applications use FFrame's `F`-prefixed API from `package:fframe/fframe.dart`; they do not import or compose Flutter Widgets or Material controls. Flutter is the runtime implementation layer beneath FFrame. `fframe_wpf` supplies the only first-party visual system.
 
-```dart
-FGrid(
-  columns: const [FTrack.fixed(240), FTrack.flex(), FTrack.fixed(320)],
-  rows: const [FTrack.fixed(48), FTrack.flex()],
-  columnGap: 8,
-  children: [
-    FGridItem(row: 0, column: 0, columnSpan: 3, child: const Toolbar()),
-    FGridItem(row: 1, column: 0, child: const Navigation()),
-    FGridItem(row: 1, column: 1, child: const Editor()),
-    FGridItem(row: 1, column: 2, child: const Inspector()),
-  ],
-)
-```
+## Core capabilities
 
-`FTrack.auto()` measures child intrinsic size. Prefer flex tracks for complex or large subtrees.
+- Fixed, intrinsic, and flex tracks in `FGrid`, with spans and gaps
+- Resizable horizontal and vertical panes with pointer and keyboard splitters
+- Constraint-driven adaptive builders and responsive workspaces
+- Desktop shell regions, navigation layout, command layout, and dock layouts
+- Overlay placement with preferred/fallback positions, flip, shift, and viewport padding
+- Shared buttons, text inputs, search, select, checkbox, switch, sidebar, tabs, menu, tooltip, and dialog surface
+- Runtime theme switching by replacing `FThemeData` or the `FFrameApp` design system
 
-## Resizable panes
+See [`examples/showcase`](examples/showcase) for the integrated FFrame layout and controls showcase, and [`docs`](docs) for guides and architecture notes. The framework is licensed under MIT; contributor expectations are in [CONTRIBUTING.md](CONTRIBUTING.md).
 
-```dart
-final controller = FPaneController();
+## Monorepo development
 
-FSplitView.horizontal(
-  controller: controller,
-  children: const [
-    FPane(id: 'navigation', preferredSize: 240, minSize: 180, child: Navigation()),
-    FPane.flex(id: 'content', minSize: 480, child: Editor()),
-    FPane(id: 'inspector', preferredSize: 320, minSize: 240, child: Inspector()),
-  ],
-)
-```
-
-Call `controller.collapse('inspector')`, `controller.setSize('navigation', 280)`, or save `controller.snapshot()` in app-owned storage.
-
-## Adaptive workspace
-
-```dart
-FWorkspace(
-  navigation: FWorkspacePane(child: const Navigation()),
-  content: const Editor(),
-  inspector: FWorkspacePane(child: const Inspector()),
-)
-```
-
-The workspace uses its local width and configured minimum sizes to choose three panes, two panes, compact navigation, or content alone. It does not inspect the operating system or device type.
-
-## Material example
-
-See [`example/`](example) for a runnable database client. Run it with:
+Activate the pinned Melos version, then bootstrap and run the repository scripts:
 
 ```sh
-cd example
-flutter run -d windows
+dart pub global activate melos 6.3.3
+melos bootstrap
+melos run analyze
+melos run test
 ```
-
-For API guides and design decisions, see [`docs/`](docs). The package core imports `flutter/widgets.dart` and rendering APIs only; Material integration is isolated in `package:fframe/material.dart`.
-
-## Development
-
-```sh
-dart format --set-exit-if-changed lib test
-flutter analyze
-flutter test
-```
-
-FFrame is licensed under MIT. See [CONTRIBUTING.md](CONTRIBUTING.md) for local development and review expectations.

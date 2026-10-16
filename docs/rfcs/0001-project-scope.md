@@ -1,5 +1,10 @@
 # RFC 0001 — Project scope
 
+> Historical scope record. The current official-package scope is documented in
+> `FFrame_Full_Framework_Plan.md` and `docs/guides/controls.md`: applications
+> use only `F`-prefixed FFrame APIs. `fframe_wpf` is the only first-party
+> visual system.
+
 ## Summary
 
 FFrame is a Flutter-native, desktop-first application layout layer between low-level widgets and component libraries.
@@ -9,7 +14,8 @@ FFrame is a Flutter-native, desktop-first application layout layer between low-l
 - Provide grid, split, adaptive, workspace, and shell layout primitives.
 - Base decisions on local constraints and capabilities.
 - Keep core independent of Material, platform window APIs, and app state.
-- Allow app-owned children from Material, Forui, Fluent, or custom libraries.
+- Provide an FFrame-owned application composition API so app code does not
+  depend on Flutter or third-party widget names.
 
 ## Non-goals
 
@@ -17,4 +23,8 @@ Buttons, form controls, visual themes, routing, data binding, native window chro
 
 ## Decision
 
-Core source imports Flutter widgets/rendering only. Material conveniences live under `package:fframe/material.dart`. Public types use an `F` prefix. 0.x may change APIs as real applications exercise the abstractions.
+FFrame uses Flutter's rendering and input systems internally. Application code
+uses the `F`-prefixed API from `fframe`; it does not import Flutter Widgets or
+Material. `fframe_layout` remains independent of design contracts and concrete
+visual systems. 0.x may change APIs as real applications exercise the
+abstractions.

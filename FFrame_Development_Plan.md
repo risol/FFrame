@@ -1,4 +1,8 @@
-# FFrame 开发计划
+# FFrame 开发计划（历史版）
+
+> 本文档记录最初的 layout-only 方向。后续完整框架路线以 [FFrame_Full_Framework_Plan.md](FFrame_Full_Framework_Plan.md) 为准。
+>
+> **当前 API 决策（2026-10-16）**：应用源码只能使用 FFrame 自有的 `F` 前缀 API，不导入或组合 Flutter Widgets/Material 控件。Flutter 是 FFrame 的内部运行时。`fframe` 是应用侧主包，`fframe_layout` 承载桌面布局，`fframe_design` 定义样式契约，`fframe_wpf` 是唯一官方视觉系统；下文原有多组件库和多视觉系统设想均为历史记录。
 
 > **项目定位**：A desktop-first adaptive layout framework for Flutter.  
 > **核心原则**：WinUI 3 inspired，Flutter-native，UI-library agnostic。  
@@ -2879,7 +2883,7 @@ Flutter
 │  Constraints / RenderObject
 │
 ▼
-FFrame Core
+fframe_layout
 │
 ├── FTrack
 ├── FGrid
@@ -2888,7 +2892,7 @@ FFrame Core
 └── FAdaptive
 │
 ▼
-FFrame Application Layout
+FFrame Application API (`fframe`)
 │
 ├── FWorkspace
 ├── FNavigationLayout
@@ -2897,11 +2901,9 @@ FFrame Application Layout
 └── FPlacement
 │
 ▼
-Adapters
+Design system
 │
-├── Material
-├── Forui (future)
-└── Fluent (future)
+└── fframe_wpf
 │
 ▼
 Application

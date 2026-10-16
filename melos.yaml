@@ -1,0 +1,27 @@
+name: fframe
+
+packages:
+  - packages/**
+  - examples/**
+
+scripts:
+  analyze:
+    run: flutter analyze
+    exec:
+      concurrency: 1
+      failFast: true
+    description: Analyze all packages and examples.
+  test:
+    run: flutter test
+    exec:
+      concurrency: 1
+      failFast: true
+      packageFilters:
+        dirExists: test
+    description: Run each package's Flutter tests.
+  format:
+    run: dart format --set-exit-if-changed lib
+    exec:
+      concurrency: 1
+      failFast: true
+    description: Check Dart formatting.

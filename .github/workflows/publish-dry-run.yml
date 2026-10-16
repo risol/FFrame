@@ -8,11 +8,21 @@ on:
 jobs:
   publish-dry-run:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package:
+          - packages/fframe_layout
+          - packages/fframe_design
+          - packages/fframe
+          - packages/fframe_wpf
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
-      - run: flutter pub get
+      - run: dart pub get
+      - run: dart run melos bootstrap
       - run: dart pub publish --dry-run --ignore-warnings
+        working-directory: ${{ matrix.package }}

@@ -7,14 +7,25 @@ on:
 jobs:
   analyze:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package:
+          - packages/fframe_layout
+          - packages/fframe_design
+          - packages/fframe
+          - packages/fframe_wpf
+          - examples/showcase
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
-      - run: flutter pub get
-      - run: flutter pub get
-        working-directory: example
-      - run: dart format --set-exit-if-changed lib test example/lib example/test benchmark
+      - run: dart pub get
+      - run: dart run melos bootstrap
+      - run: dart run tool/verify_fframe_api.dart
+      - run: dart format --set-exit-if-changed lib
+        working-directory: ${{ matrix.package }}
       - run: flutter analyze
+        working-directory: ${{ matrix.package }}

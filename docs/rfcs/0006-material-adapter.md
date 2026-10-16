@@ -1,15 +1,9 @@
-# RFC 0006 — Material adapter
+# RFC 0006 — Material adapter (superseded)
 
-## Summary
+This proposal is retained as a historical record. Its Material adapters and
+the `FWpfMaterialThemeData` bridge are removed. FFrame application code must
+use the FFrame API from `package:fframe/fframe.dart`; it does not import or
+compose Flutter Material controls. `fframe_wpf` styles FFrame controls only.
 
-Material helpers are opt-in imports and do not enter the core barrel.
-
-## Components
-
-- `FMaterialShell` maps destinations to `NavigationBar` under the compact width threshold, then `NavigationRail`, extending it at a wider threshold.
-- `FMaterialCommandArea` presents hidden commands in a `PopupMenuButton`.
-- FFrame regions remain app-supplied; the adapter does not choose an app theme or implement business navigation.
-
-## Compatibility
-
-Adapters may be opinionated and may follow Material conventions. Core APIs must remain usable without importing this library.
+The implementation of FFrame may use Flutter's runtime internally. That does
+not make Flutter Widgets or Material part of the application-facing API.

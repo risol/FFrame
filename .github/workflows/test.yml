@@ -5,11 +5,12 @@ on:
   pull_request:
 
 jobs:
-  flutter:
+  package-tests:
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
+        package: [packages/fframe_layout]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -17,11 +18,14 @@ jobs:
         with:
           channel: stable
           cache: true
-      - run: flutter pub get
-      - run: dart format --set-exit-if-changed lib test example/lib example/test
+      - run: dart pub get
+      - run: dart run melos bootstrap
+      - run: dart format --set-exit-if-changed lib test
+        working-directory: ${{ matrix.package }}
       - run: flutter test
+        working-directory: ${{ matrix.package }}
 
-  example:
+  showcase:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -29,14 +33,14 @@ jobs:
         with:
           channel: stable
           cache: true
-      - run: flutter pub get
-        working-directory: example
-      - run: flutter analyze
-        working-directory: example
+      - run: dart pub get
+      - run: dart run melos bootstrap
+      - run: dart format --set-exit-if-changed lib test benchmark
+        working-directory: examples/showcase
       - run: flutter test
-        working-directory: example
+        working-directory: examples/showcase
 
-  web:
+  web-core:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -45,5 +49,7 @@ jobs:
           channel: stable
           cache: true
       - uses: browser-actions/setup-chrome@v1
-      - run: flutter pub get
+      - run: dart pub get
+      - run: dart run melos bootstrap
       - run: flutter test --platform chrome
+        working-directory: packages/fframe_layout

@@ -1,23 +1,39 @@
 # 快速开始
 
-FFrame 是 Flutter 的桌面优先应用布局框架。核心包依赖 Flutter widgets/rendering API；按钮、输入框、主题与业务状态仍由应用或 UI 库提供。
+FFrame 是桌面优先应用框架。应用代码只使用 FFrame API：从 `package:fframe/fframe.dart` 导入以 `F` 开头的应用根、基础组合控件、布局、主题和交互控件，不导入或组合 Flutter Widgets/Material 控件。Flutter 是 FFrame 底层运行时。WPF-inspired 视觉系统由 `fframe_wpf` 提供。
 
 ## 安装
 
 ```yaml
 dependencies:
-  fframe: ^0.1.0
+  fframe: ^0.2.0
+  fframe_wpf: ^0.2.0
 ```
 
 ```dart
 import 'package:fframe/fframe.dart';
+import 'package:fframe_wpf/fframe_wpf.dart';
 ```
 
-需要 Material 快捷组件时，额外导入：
+在应用代码中统一使用 FFrame 的 `F` 前缀 API。`fframe_layout` 是分层架构中的低层布局包；桌面应用建议依赖 `fframe`，以便同时使用 FFrame 自有组合控件和完整应用入口。
 
 ```dart
-import 'package:fframe/material.dart';
+void main() => runFFrameApp(const ExampleApp());
+
+class ExampleApp extends FStatelessWidget {
+  const ExampleApp();
+
+  @override
+  FWidget build(FBuildContext context) => FFrameApp(
+        designSystem: FWpfDesignSystem.light(),
+        home: FDesktopShell(
+          body: const FCenter(child: FText('Hello, FFrame')),
+        ),
+      );
+}
 ```
+
+`FFrameApp` 设置设计系统与密度，并为 FFrame 控件提供主题作用域。应用使用 `FText`、`FRow`、`FColumn`、`FContainer` 等基础组合 API，再组合 `FButton`、`FTextField`、`FSelect` 等共享控件。
 
 ## 第一个 Workspace
 
@@ -68,9 +84,9 @@ FSplitView.horizontal(
 
 ## 示例应用
 
-`example/` 是一个 Material 数据库客户端，展示 Explorer、编辑器、结果表、Inspector、工具栏和状态区。运行：
+`examples/showcase/` 是唯一的综合示例，采用 WPF 风格展示 FFrame 桌面布局和控件：包括 Explorer、编辑器、结果表、Inspector、命令区、状态区和控件画廊。运行 Showcase：
 
 ```sh
-cd example
+cd examples/showcase
 flutter run -d windows
 ```

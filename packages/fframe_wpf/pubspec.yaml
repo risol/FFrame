@@ -1,0 +1,16 @@
+name: fframe_wpf
+description: WPF-inspired design system for FFrame-owned desktop controls.
+version: 0.2.0
+homepage: https://pub.dev/packages/fframe_wpf
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+  flutter: ">=3.22.0"
+dependencies:
+  flutter:
+    sdk: flutter
+  fframe_design:
+    ^0.2.0
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
