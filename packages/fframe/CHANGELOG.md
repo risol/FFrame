@@ -5,6 +5,9 @@
 - Add FFrame-owned composition primitives and migrate app examples to FFrame-only imports.
 - Remove Flutter Widgets/Material convenience barrels; application code uses FFrame APIs only.
 - Bundle the FFrame icon vocabulary and add FFrame frame-timing and logging APIs for diagnostics.
+- Add lazy list, full input and form validation contracts, rich-text/Markdown adapters, segmented controls, and toast feedback.
+- Add data grid, tree view, floating panel, window command contracts, expanded icon vocabulary, and integration guidance.
+- Improve popover focus scope, Escape dismissal, and focus restoration.
 
 ## 0.2.0
 

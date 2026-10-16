@@ -1,12 +1,35 @@
 import 'package:fframe/fframe.dart';
 import 'package:fframe_wpf/fframe_wpf.dart';
+import 'package:fframe_window/fframe_window.dart';
 
-void main() => runFFrameApp(const FFrameExampleApp());
+Future<void> main() async {
+  if (FDesktopWindowBootstrap.isSupportedPlatform) {
+    await FDesktopWindowBootstrap.run(
+      frameless: false,
+      mainWindow: const FWindowSpec(
+        id: 'main',
+        title: 'FFrame Database Studio',
+        route: '/',
+        size: FSize(1280, 800),
+        minimumSize: FSize(900, 600),
+      ),
+      appBuilder: (manager, currentWindow) => FFrameExampleApp(
+        windowManager: manager,
+        currentWindow: currentWindow,
+      ),
+    );
+    return;
+  }
+  runFFrameApp(const FFrameExampleApp());
+}
 
 /// Interactive WPF-style database studio used as the package example.
 class FFrameExampleApp extends FStatefulWidget {
   /// Creates the example app.
-  const FFrameExampleApp({super.key});
+  const FFrameExampleApp({super.key, this.windowManager, this.currentWindow});
+
+  final FWindowManager? windowManager;
+  final FWindowSpec? currentWindow;
 
   @override
   FState<FFrameExampleApp> createState() => _FFrameExampleAppState();
@@ -26,14 +49,38 @@ class _FFrameExampleAppState extends FState<FFrameExampleApp> {
       brightness: brightness,
       density: _isCompact ? const FStandardDensityTokens(compact: true) : null,
       color: designSystem.tokens.colors.accent,
-      home: _DatabaseClientDemo(
-        isDark: _isDark,
-        isCompact: _isCompact,
-        onToggleBrightness: () => setState(() => _isDark = !_isDark),
-        onCompactChanged: (value) => setState(() => _isCompact = value),
-      ),
+      windowManager: widget.windowManager,
+      home: widget.currentWindow?.route == '/inspector'
+          ? const _InspectorWindow()
+          : _DatabaseClientDemo(
+              isDark: _isDark,
+              isCompact: _isCompact,
+              onToggleBrightness: () => setState(() => _isDark = !_isDark),
+              onCompactChanged: (value) => setState(() => _isCompact = value),
+            ),
     );
   }
+}
+
+class _InspectorWindow extends FStatelessWidget {
+  const _InspectorWindow();
+
+  @override
+  FWidget build(FBuildContext context) => FWindowFrame(
+    title: 'Query inspector',
+    leading: const FIcon(FIcons.tune),
+    child: const FPadding(
+      padding: FEdgeInsets.all(24),
+      child: FColumn(
+        crossAxisAlignment: FCrossAxisAlignment.start,
+        children: <FWidget>[
+          FText('Inspector window'),
+          FSizedBox(height: 8),
+          FText('This independent window is hosted entirely with F APIs.'),
+        ],
+      ),
+    ),
+  );
 }
 
 class _DatabaseClientDemo extends FStatefulWidget {
@@ -252,6 +299,21 @@ class _DatabaseClientDemoState extends FState<_DatabaseClientDemo> {
           onPressed: _workspaceController.toggleInspector,
           icon: const FIcon(FIcons.tune),
         ),
+        if (FWindowManager.maybeOf(context) != null)
+          FIconButton(
+            tooltip: 'Open inspector in a new window',
+            onPressed: () async {
+              await FWindowManager.of(context).open(
+                const FWindowSpec(
+                  id: 'inspector',
+                  title: 'Query inspector',
+                  route: '/inspector',
+                  size: FSize(560, 720),
+                ),
+              );
+            },
+            icon: const FIcon(FIcons.launch),
+          ),
       ],
       spacing: 8,
     ),

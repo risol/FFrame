@@ -47,7 +47,7 @@ void main() => runFFrameApp(
     );
 ```
 
-Applications use FFrame's `F`-prefixed API from `package:fframe/fframe.dart`; they do not import or compose Flutter Widgets or Material controls. Flutter is the runtime implementation layer beneath FFrame. `fframe_wpf` supplies the only first-party visual system.
+Applications compose their visible UI with FFrame's `F`-prefixed API from `package:fframe/fframe.dart`. Integration packages may adapt Riverpod, Markdown, FFlow, or platform widgets at the `FWidget` boundary; Material controls are not part of the shared control surface. `fframe_wpf` supplies the only first-party visual system.
 
 ## Core capabilities
 
@@ -57,9 +57,13 @@ Applications use FFrame's `F`-prefixed API from `package:fframe/fframe.dart`; th
 - Desktop shell regions, navigation layout, command layout, and dock layouts
 - Overlay placement with preferred/fallback positions, flip, shift, and viewport padding
 - Shared buttons, text inputs, search, select, checkbox, switch, sidebar, tabs, menu, tooltip, and dialog surface
+- Lazy lists, virtualized data grids and trees, form validation, segmented choices, and toast feedback
+- Rich text, Markdown renderer bridge, floating panels, and optional native desktop windows
 - Runtime theme switching by replacing `FThemeData` or the `FFrameApp` design system
 
 See [`examples/showcase`](examples/showcase) for the integrated FFrame layout and controls showcase, and [`docs`](docs) for guides and architecture notes. The framework is licensed under MIT; contributor expectations are in [CONTRIBUTING.md](CONTRIBUTING.md).
+
+Start with the [API index](docs/api/README.md), [integration guide](docs/guides/integrations.md), or [development status](docs/roadmap-status.md).
 
 ## Monorepo development
 

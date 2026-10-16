@@ -10,6 +10,113 @@ import 'package:fframe_design/fframe_design.dart';
 
 import 'primitives.dart';
 
+/// Validation function used by [FTextField] and [FForm].
+typedef FValidator = String? Function(String value);
+
+/// Controls when [FTextField.validator] is evaluated while typing.
+enum FAutovalidateMode { disabled, onUserInteraction, always }
+
+class _FFormFieldCallbacks {
+  const _FFormFieldCallbacks({
+    required this.validate,
+    required this.reset,
+    required this.save,
+  });
+
+  final bool Function() validate;
+  final VoidCallback reset;
+  final VoidCallback save;
+}
+
+/// Coordinates validation, reset, and save callbacks for fields in an [FForm].
+class FFormController {
+  final Map<Object, _FFormFieldCallbacks> _fields =
+      <Object, _FFormFieldCallbacks>{};
+
+  bool validate() {
+    var valid = true;
+    for (final field in _fields.values.toList(growable: false)) {
+      if (!field.validate()) valid = false;
+    }
+    return valid;
+  }
+
+  void reset() {
+    for (final field in _fields.values.toList(growable: false)) {
+      field.reset();
+    }
+  }
+
+  void save() {
+    for (final field in _fields.values.toList(growable: false)) {
+      field.save();
+    }
+  }
+
+  void _register(Object key, _FFormFieldCallbacks callbacks) =>
+      _fields[key] = callbacks;
+
+  void _unregister(Object key) => _fields.remove(key);
+}
+
+class _FFormScope extends InheritedWidget {
+  const _FFormScope({required this.controller, required super.child});
+
+  final FFormController controller;
+
+  @override
+  bool updateShouldNotify(_FFormScope oldWidget) =>
+      controller != oldWidget.controller;
+}
+
+/// Groups [FTextField] controls under one validation and save boundary.
+class FForm extends StatefulWidget {
+  const FForm({
+    super.key,
+    required this.child,
+    this.controller,
+  });
+
+  final FWidget child;
+  final FFormController? controller;
+
+  static FFormController? maybeOf(FBuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<_FFormScope>()?.controller;
+
+  static FFormController of(FBuildContext context) {
+    final controller = maybeOf(context);
+    assert(controller != null, 'No FForm found in the widget tree.');
+    return controller!;
+  }
+
+  @override
+  State<FForm> createState() => _FFormState();
+}
+
+class _FFormState extends State<FForm> {
+  late FFormController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = widget.controller ?? FFormController();
+  }
+
+  @override
+  void didUpdateWidget(FForm oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      _controller = widget.controller ?? FFormController();
+    }
+  }
+
+  @override
+  FWidget build(FBuildContext context) => _FFormScope(
+        controller: _controller,
+        child: widget.child,
+      );
+}
+
 /// A behavior-sharing button whose appearance comes from [FTheme].
 class FButton extends StatefulWidget {
   const FButton({
@@ -377,14 +484,29 @@ class FTextField extends StatefulWidget {
     this.trailing,
     this.onChanged,
     this.onSubmitted,
+    this.onEditingComplete,
     this.enabled = true,
     this.readOnly = false,
     this.autofocus = false,
     this.size = FControlSize.medium,
     this.textInputAction,
+    this.keyboardType,
+    this.textCapitalization = FTextCapitalization.none,
+    this.inputFormatters,
     this.maxLines = 1,
     this.minLines,
     this.expands = false,
+    this.obscureText = false,
+    this.obscuringCharacter = '•',
+    this.maxLength,
+    this.showCounter = true,
+    this.helperText,
+    this.errorText,
+    this.validator,
+    this.onSaved,
+    this.autovalidateMode = FAutovalidateMode.disabled,
+    this.autocorrect = true,
+    this.enableSuggestions = true,
     this.textStyle,
     this.cursorColor,
     this.backgroundCursorColor,
@@ -399,14 +521,29 @@ class FTextField extends StatefulWidget {
   final FWidget? trailing;
   final FValueChanged<String>? onChanged;
   final FValueChanged<String>? onSubmitted;
+  final FVoidCallback? onEditingComplete;
   final bool enabled;
   final bool readOnly;
   final bool autofocus;
   final FControlSize size;
   final FTextInputAction? textInputAction;
+  final FTextInputType? keyboardType;
+  final FTextCapitalization textCapitalization;
+  final List<FTextInputFormatter>? inputFormatters;
   final int? maxLines;
   final int? minLines;
   final bool expands;
+  final bool obscureText;
+  final String obscuringCharacter;
+  final int? maxLength;
+  final bool showCounter;
+  final String? helperText;
+  final String? errorText;
+  final FValidator? validator;
+  final FValueChanged<String>? onSaved;
+  final FAutovalidateMode autovalidateMode;
+  final bool autocorrect;
+  final bool enableSuggestions;
   final FTextStyle? textStyle;
   final FColor? cursorColor;
   final FColor? backgroundCursorColor;
@@ -422,12 +559,18 @@ class _FTextFieldState extends State<FTextField> {
   bool _hovered = false;
   late bool _ownsController;
   late bool _ownsFocusNode;
+  final Object _formFieldKey = Object();
+  FFormController? _formController;
+  String? _validationError;
+  bool _interacted = false;
+  late String _initialText;
 
   @override
   void initState() {
     super.initState();
     _ownsController = widget.controller == null;
     _controller = widget.controller ?? FTextEditingController();
+    _initialText = _controller.text;
     _ownsFocusNode = widget.focusNode == null;
     _focusNode = widget.focusNode ?? FFocusNode();
     _focusNode.addListener(_onFocusChange);
@@ -449,15 +592,74 @@ class _FTextFieldState extends State<FTextField> {
       if (_ownsController) _controller.dispose();
       _ownsController = widget.controller == null;
       _controller = widget.controller ?? FTextEditingController();
+      _initialText = _controller.text;
       _controller.addListener(_onControllerChanged);
     }
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final nextForm = FForm.maybeOf(context);
+    if (!identical(nextForm, _formController)) {
+      _formController?._unregister(_formFieldKey);
+      _formController = nextForm;
+      _registerWithForm();
+    }
+  }
+
+  void _registerWithForm() {
+    _formController?._register(
+      _formFieldKey,
+      _FFormFieldCallbacks(
+        validate: _validate,
+        reset: _resetField,
+        save: _saveField,
+      ),
+    );
+  }
+
+  bool _validate() {
+    final message = widget.validator?.call(_controller.text);
+    if (_validationError != message && mounted) {
+      setState(() => _validationError = message);
+    }
+    return message == null;
+  }
+
+  void _resetField() {
+    _controller.text = _initialText;
+    _interacted = false;
+    if (_validationError != null && mounted) {
+      setState(() => _validationError = null);
+    }
+  }
+
+  void _saveField() => widget.onSaved?.call(_controller.text);
+
   void _onFocusChange() => setState(() {});
-  void _onControllerChanged() => setState(() {});
+
+  void _onControllerChanged() {
+    final shouldValidate = widget.validator != null &&
+        (widget.autovalidateMode == FAutovalidateMode.always ||
+            (widget.autovalidateMode == FAutovalidateMode.onUserInteraction &&
+                _interacted));
+    final nextError =
+        shouldValidate ? widget.validator!(_controller.text) : _validationError;
+    setState(() => _validationError = nextError);
+  }
+
+  void _handleChanged(String value) {
+    _interacted = true;
+    widget.onChanged?.call(value);
+    if (widget.autovalidateMode == FAutovalidateMode.onUserInteraction) {
+      _validate();
+    }
+  }
 
   @override
   void dispose() {
+    _formController?._unregister(_formFieldKey);
     _focusNode.removeListener(_onFocusChange);
     _controller.removeListener(_onControllerChanged);
     if (_ownsFocusNode) _focusNode.dispose();
@@ -468,6 +670,16 @@ class _FTextFieldState extends State<FTextField> {
   @override
   FWidget build(FBuildContext context) {
     final theme = FTheme.of(context);
+    final errorText = widget.errorText ??
+        _validationError ??
+        (widget.autovalidateMode == FAutovalidateMode.always
+            ? widget.validator?.call(_controller.text)
+            : null);
+    assert(widget.maxLength == null || widget.maxLength! >= 0);
+    assert(widget.maxLines == null || widget.maxLines! > 0);
+    assert(!widget.expands ||
+        (widget.maxLines == null && widget.minLines == null));
+    assert(!widget.obscureText || (widget.maxLines == 1 && !widget.expands));
     final states = <FControlState>{
       if (_hovered) FControlState.hovered,
       if (_focusNode.hasFocus) FControlState.focused,
@@ -487,8 +699,9 @@ class _FTextFieldState extends State<FTextField> {
         padding: style.padding,
         background: style.background,
         radius: style.radius,
-        borderColor: style.border,
-        borderWidth: style.borderWidth,
+        borderColor:
+            errorText == null ? style.border : theme.tokens.colors.danger,
+        borderWidth: errorText == null ? style.borderWidth : 1.5,
         boxShadow: style.focusRing == null
             ? null
             : <BoxShadow>[
@@ -526,8 +739,23 @@ class _FTextFieldState extends State<FTextField> {
                       readOnly: widget.readOnly || !widget.enabled,
                       autofocus: widget.autofocus,
                       textInputAction: widget.textInputAction,
-                      onChanged: widget.onChanged,
-                      onSubmitted: widget.onSubmitted,
+                      keyboardType: widget.keyboardType,
+                      textCapitalization: widget.textCapitalization,
+                      inputFormatters: <FTextInputFormatter>[
+                        ...?widget.inputFormatters,
+                        if (widget.maxLength != null)
+                          LengthLimitingTextInputFormatter(widget.maxLength),
+                      ],
+                      obscureText: widget.obscureText,
+                      obscuringCharacter: widget.obscuringCharacter,
+                      autocorrect: widget.autocorrect,
+                      enableSuggestions: widget.enableSuggestions,
+                      onChanged: _handleChanged,
+                      onSubmitted: (value) {
+                        if (widget.validator != null) _validate();
+                        widget.onSubmitted?.call(value);
+                      },
+                      onEditingComplete: widget.onEditingComplete,
                       maxLines: widget.maxLines,
                       minLines: widget.minLines,
                       expands: widget.expands,
@@ -562,7 +790,52 @@ class _FTextFieldState extends State<FTextField> {
             focusable: widget.enabled,
             enabled: widget.enabled,
             label: widget.label ?? widget.placeholder,
+            obscured: widget.obscureText,
+            multiline: widget.maxLines != 1,
             child: field),
+        if (errorText != null ||
+            widget.helperText != null ||
+            (widget.maxLength != null && widget.showCounter))
+          Padding(
+            padding: const EdgeInsetsDirectional.only(start: 2, top: 4),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <FWidget>[
+                Expanded(
+                  child: errorText != null
+                      ? Semantics(
+                          liveRegion: true,
+                          label: errorText,
+                          child: Text(
+                            errorText,
+                            style: theme.tokens.typography.caption.copyWith(
+                              color: theme.tokens.colors.danger,
+                            ),
+                          ),
+                        )
+                      : widget.helperText == null
+                          ? const SizedBox.shrink()
+                          : Text(
+                              widget.helperText!,
+                              style: theme.tokens.typography.caption.copyWith(
+                                color: theme.tokens.colors.textSecondary,
+                              ),
+                            ),
+                ),
+                if (widget.maxLength != null && widget.showCounter)
+                  Text(
+                    '${_controller.text.runes.length}/${widget.maxLength}',
+                    semanticsLabel:
+                        '${_controller.text.runes.length} of ${widget.maxLength} characters',
+                    style: theme.tokens.typography.caption.copyWith(
+                      color: errorText == null
+                          ? theme.tokens.colors.textSecondary
+                          : theme.tokens.colors.danger,
+                    ),
+                  ),
+              ],
+            ),
+          ),
       ],
     );
   }
@@ -1421,6 +1694,7 @@ class FPopover extends StatefulWidget {
     this.placement = FPlacement.bottomStart,
     this.fallbackPlacements = const <FPlacement>[FPlacement.topStart],
     this.barrierDismissible = true,
+    this.focusNode,
   });
 
   final FWidget trigger;
@@ -1429,6 +1703,7 @@ class FPopover extends StatefulWidget {
   final FPlacement placement;
   final List<FPlacement> fallbackPlacements;
   final bool barrierDismissible;
+  final FFocusNode? focusNode;
 
   @override
   State<FPopover> createState() => _FPopoverState();
@@ -1437,29 +1712,52 @@ class FPopover extends StatefulWidget {
 class _FPopoverState extends State<FPopover> {
   final _portal = OverlayPortalController();
   final _targetKey = GlobalKey();
-  final _focusNode = FFocusNode();
+  late FFocusNode _focusNode;
+  late bool _ownsFocusNode;
   bool _open = false;
 
   @override
+  void initState() {
+    super.initState();
+    _ownsFocusNode = widget.focusNode == null;
+    _focusNode = widget.focusNode ?? FFocusNode();
+  }
+
+  @override
+  void didUpdateWidget(FPopover oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.focusNode != widget.focusNode) {
+      if (_ownsFocusNode) _focusNode.dispose();
+      _ownsFocusNode = widget.focusNode == null;
+      _focusNode = widget.focusNode ?? FFocusNode();
+    }
+  }
+
+  @override
   void dispose() {
-    _focusNode.dispose();
+    if (_ownsFocusNode) _focusNode.dispose();
     super.dispose();
   }
 
-  void _setOpen(bool value) {
+  void _setOpen(bool value, {bool restoreFocus = false}) {
     if (_open == value) return;
     setState(() => _open = value);
     if (value) {
       _portal.show();
     } else {
       _portal.hide();
+      if (restoreFocus) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _focusNode.requestFocus();
+        });
+      }
     }
   }
 
   KeyEventResult _onKey(FFocusNode node, KeyEvent event) {
     if (event is KeyDownEvent) {
       if (event.logicalKey == LogicalKeyboardKey.escape && _open) {
-        _setOpen(false);
+        _setOpen(false, restoreFocus: true);
         return KeyEventResult.handled;
       }
       if (event.logicalKey == LogicalKeyboardKey.enter ||
@@ -1467,6 +1765,16 @@ class _FPopoverState extends State<FPopover> {
         _setOpen(!_open);
         return KeyEventResult.handled;
       }
+    }
+    return KeyEventResult.ignored;
+  }
+
+  KeyEventResult _onOverlayKey(FFocusNode node, KeyEvent event) {
+    if (event is KeyDownEvent &&
+        event.logicalKey == LogicalKeyboardKey.escape &&
+        _open) {
+      _setOpen(false, restoreFocus: true);
+      return KeyEventResult.handled;
     }
     return KeyEventResult.ignored;
   }
@@ -1480,7 +1788,7 @@ class _FPopoverState extends State<FPopover> {
               Positioned.fill(
                 child: GestureDetector(
                   behavior: HitTestBehavior.translucent,
-                  onTap: () => _setOpen(false),
+                  onTap: () => _setOpen(false, restoreFocus: true),
                   child: const SizedBox.expand(),
                 ),
               ),
@@ -1493,7 +1801,11 @@ class _FPopoverState extends State<FPopover> {
                   mainAxisOffset: widget.offset.dy.abs(),
                   crossAxisOffset: widget.offset.dx,
                 ),
-                child: widget.content,
+                child: FocusScope(
+                  autofocus: true,
+                  onKeyEvent: _onOverlayKey,
+                  child: FocusTraversalGroup(child: widget.content),
+                ),
               ),
             ),
           ],
@@ -2054,4 +2366,202 @@ class _FTabButtonState extends State<_FTabButton> {
       ),
     );
   }
+}
+
+/// A mutually exclusive group of compact choices.
+class FSegmentedControl<T> extends StatelessWidget {
+  const FSegmentedControl({
+    super.key,
+    required this.items,
+    required this.selectedValue,
+    required this.onChanged,
+    this.size = FControlSize.medium,
+    this.expand = false,
+  });
+
+  final List<FSegmentedItem<T>> items;
+  final T selectedValue;
+  final FValueChanged<T>? onChanged;
+  final FControlSize size;
+  final bool expand;
+
+  @override
+  FWidget build(FBuildContext context) {
+    assert(items.isNotEmpty);
+    return Row(
+      mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
+      children: <FWidget>[
+        for (var index = 0; index < items.length; index++) ...<FWidget>[
+          if (index > 0) const SizedBox(width: 2),
+          if (expand)
+            Expanded(child: _buildItem(items[index]))
+          else
+            _buildItem(items[index]),
+        ],
+      ],
+    );
+  }
+
+  FWidget _buildItem(FSegmentedItem<T> item) {
+    final selected = item.value == selectedValue;
+    return Semantics(
+      inMutuallyExclusiveGroup: true,
+      selected: selected,
+      child: FButton(
+        onPressed: onChanged == null ? null : () => onChanged?.call(item.value),
+        size: size,
+        variant: selected ? FButtonVariant.primary : FButtonVariant.subtle,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <FWidget>[
+            if (item.icon != null) ...<FWidget>[
+              item.icon!,
+              const SizedBox(width: 6),
+            ],
+            Text(item.label),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// One choice in an [FSegmentedControl].
+class FSegmentedItem<T> {
+  const FSegmentedItem({required this.value, required this.label, this.icon});
+
+  final T value;
+  final String label;
+  final FWidget? icon;
+}
+
+/// Semantic tone for transient [FToast] feedback.
+enum FToastVariant { info, success, warning, error }
+
+/// A short-lived, non-modal feedback message rendered above the app overlay.
+class FToast extends StatelessWidget {
+  const FToast({
+    super.key,
+    required this.message,
+    required this.variant,
+    this.actionLabel,
+    this.onAction,
+    this.onDismiss,
+  });
+
+  final String message;
+  final FToastVariant variant;
+  final String? actionLabel;
+  final FVoidCallback? onAction;
+  final FVoidCallback? onDismiss;
+
+  @override
+  FWidget build(FBuildContext context) {
+    final theme = FTheme.of(context);
+    final (icon, color) = switch (variant) {
+      FToastVariant.info => (FIcons.info, theme.tokens.colors.accent),
+      FToastVariant.success => (
+          FIcons.checkCircle,
+          theme.tokens.colors.success
+        ),
+      FToastVariant.warning => (FIcons.warning, theme.tokens.colors.warning),
+      FToastVariant.error => (FIcons.error, theme.tokens.colors.danger),
+    };
+    return SafeArea(
+      minimum: const EdgeInsets.all(12),
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: Semantics(
+          liveRegion: true,
+          container: true,
+          child: FPanel(
+            raised: true,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <FWidget>[
+                FIcon(icon, color: color),
+                const SizedBox(width: 10),
+                Flexible(
+                  child: Text(
+                    message,
+                    style: theme.tokens.typography.body
+                        .copyWith(color: theme.tokens.colors.textPrimary),
+                  ),
+                ),
+                if (actionLabel != null && onAction != null) ...<FWidget>[
+                  const SizedBox(width: 12),
+                  FButton(
+                    variant: FButtonVariant.subtle,
+                    onPressed: () {
+                      onAction?.call();
+                      onDismiss?.call();
+                    },
+                    child: Text(actionLabel!),
+                  ),
+                ],
+                if (onDismiss != null) ...<FWidget>[
+                  const SizedBox(width: 4),
+                  FIconButton(
+                    icon: const FIcon(FIcons.close),
+                    tooltip: 'Dismiss',
+                    onPressed: onDismiss,
+                    size: FControlSize.compact,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Handle returned by [showFToast] to dismiss a toast early.
+class FToastHandle {
+  FToastHandle._(this._entry);
+
+  final OverlayEntry _entry;
+  Timer? _timer;
+  bool _dismissed = false;
+
+  void _start(Duration duration) => _timer = Timer(duration, dismiss);
+
+  void dismiss() {
+    if (_dismissed) return;
+    _dismissed = true;
+    _timer?.cancel();
+    if (_entry.mounted) _entry.remove();
+    _entry.dispose();
+  }
+}
+
+/// Shows a themed transient message and returns a handle for early dismissal.
+FToastHandle showFToast(
+  FBuildContext context, {
+  required String message,
+  FToastVariant variant = FToastVariant.info,
+  Duration duration = const Duration(seconds: 4),
+  String? actionLabel,
+  FVoidCallback? onAction,
+}) {
+  late final FToastHandle handle;
+  final entry = OverlayEntry(
+    builder: (context) => FToast(
+      message: message,
+      variant: variant,
+      actionLabel: actionLabel,
+      onAction: onAction == null
+          ? null
+          : () {
+              onAction();
+              handle.dismiss();
+            },
+      onDismiss: () => handle.dismiss(),
+    ),
+  );
+  handle = FToastHandle._(entry);
+  Overlay.of(context).insert(entry);
+  handle._start(duration);
+  return handle;
 }

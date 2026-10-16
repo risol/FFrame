@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart' as fw;
 import 'package:fframe_design/fframe_design.dart';
 
 import 'primitives.dart';
+import 'windowing.dart';
 
 /// FFrame application host with an inherited FFrame design-system scope.
 class FFrameApp extends fw.StatelessWidget {
@@ -17,6 +18,7 @@ class FFrameApp extends fw.StatelessWidget {
     this.routes = const <String, FWidgetBuilder>{},
     this.onGenerateRoute,
     this.navigationController,
+    this.windowManager,
   });
 
   final FDesignSystem designSystem;
@@ -29,6 +31,7 @@ class FFrameApp extends fw.StatelessWidget {
   final Map<String, FWidgetBuilder> routes;
   final FRouteBuilder? onGenerateRoute;
   final FNavigationController? navigationController;
+  final FWindowManager? windowManager;
 
   @override
   FWidget build(FBuildContext context) => fw.WidgetsApp(
@@ -62,11 +65,14 @@ class FFrameApp extends fw.StatelessWidget {
             brightness: brightness,
             density: density,
           ),
-          child: FDefaultTextStyle(
-            style: designSystem.tokens.typography.body.copyWith(
-              color: designSystem.tokens.colors.textPrimary,
+          child: FWindowScope(
+            manager: windowManager,
+            child: FDefaultTextStyle(
+              style: designSystem.tokens.typography.body.copyWith(
+                color: designSystem.tokens.colors.textPrimary,
+              ),
+              child: child ?? const FSizedBox.shrink(),
             ),
-            child: child ?? const FSizedBox.shrink(),
           ),
         ),
       );

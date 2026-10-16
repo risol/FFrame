@@ -1,6 +1,6 @@
 # FFrame 完整开发计划
 
-> **当前范围决策（2026-10-16）**：FFrame 应用代码只能使用 FFrame 自有的 `F` 前缀 API；不允许在应用中导入或组合 Flutter Widgets/Material 控件，也不通过便利 re-export 暴露它们。Flutter 是 FFrame 的底层运行时实现，不是应用层控件体系。FFrame 保留 `fframe_wpf` 作为唯一官方视觉系统，删除 `fframe_minimal`、`fframe_fluent`、`fframe_material` 等 FFrame 风格包以及 Flutter Material 主题适配器。FFrame 对基础组合、交互和设计系统的能力覆盖按本计划继续推进，不能把底层 Flutter 类型或控件直接当作缺失功能的替代方案。Cupertino 不属于当前目标。下文原多风格章节作为历史方案记录，实施与文档以此范围决策为准。
+> **当前范围决策（2026-10-16，后续扩展见 roadmap）**：FFrame 应用 UI 使用 FFrame 自有的 `F` 前缀 API；Riverpod、Markdown、FFlow 和平台功能通过可选的 FWidget 适配边界衔接，Material 控件不属于共享控件面。Flutter 是 FFrame 的底层运行时实现。FFrame 保留 `fframe_wpf` 作为唯一官方视觉系统。DataGrid、TreeView、浮动面板、输入与常用组合控件已进入当前实现；可选 `fframe_window` 包实现 Windows、macOS 和 Linux 的原生窗口适配，平台 runner 仍需各自注册子窗口插件并完成实机验证。具体现状和剩余工作以 [docs/roadmap-status.md](docs/roadmap-status.md) 为准。下文原多风格章节作为历史方案记录。
 
 > **包职责决策（2026-10-16）**：`fframe` 是应用侧主包，提供 FFrame 自有基础组合 API、共享控件、应用入口，并统一导出布局和设计契约；`fframe_layout` 只承载视觉中立的桌面布局能力；`fframe_design` 定义设计系统契约；`fframe_wpf` 实现 WPF 视觉系统。应用只需依赖 `fframe` 和所选视觉系统，不直接依赖 `fframe_layout` 或 Flutter 控件库。
 

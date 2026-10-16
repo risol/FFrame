@@ -29,7 +29,10 @@ class ExampleApp extends FStatelessWidget {
 }
 ```
 
-Application code does not import or compose Flutter Widgets or Material
-controls. Flutter provides the runtime beneath FFrame; its low-level types and
-rendering details stay inside FFrame's implementation. The WPF-inspired design
-system is available from `fframe_wpf`.
+Application UI is composed with FFrame's `F*` APIs. Integration packages may
+adapt Riverpod, Markdown, FFlow, or platform widgets at the `FWidget` boundary;
+FFrame itself remains independent of those packages. Material controls are not
+part of the shared control surface. The WPF-inspired design system is available
+from `fframe_wpf`.
+
+See the [API index](../../docs/api/README.md) and [integration boundaries](../../docs/guides/integrations.md).

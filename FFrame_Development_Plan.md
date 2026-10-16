@@ -2,7 +2,7 @@
 
 > 本文档记录最初的 layout-only 方向。后续完整框架路线以 [FFrame_Full_Framework_Plan.md](FFrame_Full_Framework_Plan.md) 为准。
 >
-> **当前 API 决策（2026-10-16）**：应用源码只能使用 FFrame 自有的 `F` 前缀 API，不导入或组合 Flutter Widgets/Material 控件。Flutter 是 FFrame 的内部运行时。`fframe` 是应用侧主包，`fframe_layout` 承载桌面布局，`fframe_design` 定义样式契约，`fframe_wpf` 是唯一官方视觉系统；下文原有多组件库和多视觉系统设想均为历史记录。
+> **当前 API 决策（2026-10-16）**：应用 UI 使用 FFrame 自有的 `F` 前缀 API。Riverpod、Markdown、FFlow 和平台功能通过可选的 FWidget 适配边界衔接；Material 控件不属于共享控件面。`fframe` 是应用侧主包，`fframe_layout` 承载桌面布局，`fframe_design` 定义样式契约，`fframe_wpf` 是唯一官方视觉系统；下文原有多组件库和多视觉系统设想均为历史记录。最新状态以 [docs/roadmap-status.md](docs/roadmap-status.md) 为准。
 
 > **项目定位**：A desktop-first adaptive layout framework for Flutter.  
 > **核心原则**：WinUI 3 inspired，Flutter-native，UI-library agnostic。  

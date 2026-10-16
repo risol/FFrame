@@ -1,0 +1,17 @@
+name: fframe_window
+description: Optional native desktop window adapter for FFrame applications.
+version: 0.1.0
+homepage: https://pub.dev/packages/fframe_window
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+  flutter: ">=3.22.0"
+dependencies:
+  flutter:
+    sdk: flutter
+  desktop_multi_window: ^0.3.1
+  fframe: ^0.2.0
+  window_manager: ^0.5.2
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0

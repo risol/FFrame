@@ -1,3 +1,6 @@
+// Keep compatibility with the declared Flutter 3.22 floor.
+// ignore_for_file: deprecated_member_use
+
 /// FFrame-owned application composition primitives.
 ///
 /// These APIs are implemented with Flutter's rendering and accessibility
@@ -51,6 +54,33 @@ typedef FClip = fw.Clip;
 typedef FTableBorder = fw.TableBorder;
 typedef FTableColumnWidth = fw.TableColumnWidth;
 typedef FWidgetBuilder = fw.WidgetBuilder;
+typedef FIndexedWidgetBuilder = fw.IndexedWidgetBuilder;
+typedef FTextInputFormatter = fs.TextInputFormatter;
+typedef FTextCapitalization = fs.TextCapitalization;
+
+/// Common input formatters exposed with FFrame naming.
+abstract final class FInputFormatters {
+  static FTextInputFormatter get digitsOnly =>
+      fs.FilteringTextInputFormatter.digitsOnly;
+
+  static FTextInputFormatter allow(
+    RegExp pattern, {
+    String replacementString = '',
+  }) =>
+      fs.FilteringTextInputFormatter.allow(
+        pattern,
+        replacementString: replacementString,
+      );
+
+  static FTextInputFormatter deny(
+    RegExp pattern, {
+    String replacementString = '',
+  }) =>
+      fs.FilteringTextInputFormatter.deny(
+        pattern,
+        replacementString: replacementString,
+      );
+}
 
 /// Frame timing values exposed through FFrame's diagnostics API.
 class FFrameTiming {
@@ -225,6 +255,66 @@ class FText extends fw.StatelessWidget {
       );
 }
 
+/// Rich text whose spans use FFrame-owned names.
+class FRichText extends fw.StatelessWidget {
+  const FRichText({
+    super.key,
+    required this.text,
+    this.style,
+    this.textAlign = FTextAlignment.start,
+    this.maxLines,
+    this.softWrap = true,
+    this.overflow = FTextOverflowMode.clip,
+  });
+
+  final FInlineSpan text;
+  final FTextStyle? style;
+  final FTextAlignment textAlign;
+  final int? maxLines;
+  final bool softWrap;
+  final FTextOverflowMode overflow;
+
+  @override
+  FWidget build(FBuildContext context) => fw.RichText(
+        text: FInlineSpan(
+          style: style ?? fw.DefaultTextStyle.of(context).style,
+          children: <FInlineSpan>[text],
+        ),
+        textAlign: switch (textAlign) {
+          FTextAlignment.start => fw.TextAlign.start,
+          FTextAlignment.end => fw.TextAlign.end,
+          FTextAlignment.left => fw.TextAlign.left,
+          FTextAlignment.right => fw.TextAlign.right,
+          FTextAlignment.center => fw.TextAlign.center,
+          FTextAlignment.justify => fw.TextAlign.justify,
+        },
+        textDirection: fw.Directionality.of(context),
+        maxLines: maxLines,
+        softWrap: softWrap,
+        overflow: switch (overflow) {
+          FTextOverflowMode.clip => fw.TextOverflow.clip,
+          FTextOverflowMode.fade => fw.TextOverflow.fade,
+          FTextOverflowMode.ellipsis => fw.TextOverflow.ellipsis,
+          FTextOverflowMode.visible => fw.TextOverflow.visible,
+        },
+      );
+}
+
+/// A rich-text span with FFrame naming and Flutter's stable span behavior.
+class FInlineSpan extends fw.TextSpan {
+  const FInlineSpan(
+      {super.text, super.style, super.children, super.recognizer});
+}
+
+/// An inline widget embedded in [FRichText].
+class FWidgetSpan extends fw.WidgetSpan {
+  const FWidgetSpan({
+    required super.child,
+    super.alignment = fw.PlaceholderAlignment.bottom,
+    super.baseline,
+  });
+}
+
 /// A framework-owned icon symbol identifier.
 class FIconData {
   const FIconData._(this._codePoint);
@@ -237,35 +327,68 @@ class FIconData {
 /// Glyph rendering is an implementation detail of FIcon; app code refers to
 /// these stable FFrame names instead of importing a platform icon catalog.
 abstract final class FIcons {
+  static const add = FIconData._(0xe145);
+  static const arrowBack = FIconData._(0xe5c4);
+  static const arrowDownward = FIconData._(0xe5db);
+  static const arrowForward = FIconData._(0xe5c8);
+  static const arrowUpward = FIconData._(0xe5d8);
+  static const attachFile = FIconData._(0xe24d);
   static const accountTree = FIconData._(0xee36);
   static const administration = FIconData._(0xee53);
   static const autoFormat = FIconData._(0xeeab);
+  static const calendar = FIconData._(0xe935);
   static const chat = FIconData._(0xef44);
+  static const check = FIconData._(0xe5ca);
   static const checkCircle = FIconData._(0xe159);
+  static const chevronDown = FIconData._(0xe5cf);
+  static const chevronLeft = FIconData._(0xe5cb);
   static const chevronRight = FIconData._(0xe15f);
+  static const chevronUp = FIconData._(0xe5ce);
   static const circle = FIconData._(0xe163);
   static const close = FIconData._(0xe16a);
+  static const delete = FIconData._(0xe872);
   static const darkMode = FIconData._(0xef9f);
   static const description = FIconData._(0xefae);
   static const database = FIconData._(0xefd4);
   static const download = FIconData._(0xeff2);
+  static const edit = FIconData._(0xe3c9);
+  static const error = FIconData._(0xe000);
   static const expandMore = FIconData._(0xe246);
   static const extension = FIconData._(0xf03f);
+  static const filterList = FIconData._(0xe152);
   static const folderOpen = FIconData._(0xf090);
   static const folder = FIconData._(0xf091);
+  static const help = FIconData._(0xe887);
+  static const home = FIconData._(0xe88a);
+  static const info = FIconData._(0xe88e);
+  static const lock = FIconData._(0xe897);
   static const lineSpacing = FIconData._(0xe2b7);
   static const lightMode = FIconData._(0xf162);
   static const menu = FIconData._(0xe3dc);
   static const moreHorizontal = FIconData._(0xe402);
+  static const moreVertical = FIconData._(0xe5d4);
   static const openInFull = FIconData._(0xe45b);
+  static const radioButtonChecked = FIconData._(0xe837);
+  static const radioButtonUnchecked = FIconData._(0xe836);
+  static const refresh = FIconData._(0xe5d5);
+  static const remove = FIconData._(0xe15b);
+  static const search = FIconData._(0xe8b6);
+  static const send = FIconData._(0xe163);
+  static const settings = FIconData._(0xe8b8);
   static const people = FIconData._(0xe488);
   static const addPerson = FIconData._(0xe494);
   static const play = FIconData._(0xf00a0);
   static const save = FIconData._(0xf334);
   static const security = FIconData._(0xf379);
   static const storage = FIconData._(0xf01de);
+  static const sort = FIconData._(0xe164);
+  static const visibility = FIconData._(0xe8f4);
+  static const visibilityOff = FIconData._(0xe8f5);
+  static const warning = FIconData._(0xe002);
   static const table = FIconData._(0xf41d);
   static const tune = FIconData._(0xe683);
+  static const upload = FIconData._(0xe2c6);
+  static const launch = FIconData._(0xe89e);
   static const webhook = FIconData._(0xf0697);
 }
 
@@ -643,6 +766,116 @@ class FSingleChildScrollView extends fw.StatelessWidget {
         padding: padding,
         child: child,
       );
+}
+
+/// A lazily built FFrame list.
+///
+/// Prefer [FListView.builder] for large or unbounded collections. It creates
+/// children only as they enter the visible/cache region and preserves normal
+/// Flutter scroll-controller and semantics behavior.
+class FListView extends fw.StatelessWidget {
+  const FListView({
+    super.key,
+    required this.children,
+    this.scrollDirection = FLayoutAxis.vertical,
+    this.padding,
+    this.controller,
+    this.physics,
+    this.reverse = false,
+    this.primary,
+    this.cacheExtent,
+  })  : itemBuilder = null,
+        separatorBuilder = null,
+        itemCount = children.length;
+
+  const FListView.builder({
+    super.key,
+    required this.itemBuilder,
+    this.itemCount,
+    this.scrollDirection = FLayoutAxis.vertical,
+    this.padding,
+    this.controller,
+    this.physics,
+    this.reverse = false,
+    this.primary,
+    this.cacheExtent,
+  })  : children = const <FWidget>[],
+        separatorBuilder = null;
+
+  const FListView.separated({
+    super.key,
+    required this.itemBuilder,
+    required this.separatorBuilder,
+    required this.itemCount,
+    this.scrollDirection = FLayoutAxis.vertical,
+    this.padding,
+    this.controller,
+    this.physics,
+    this.reverse = false,
+    this.primary,
+    this.cacheExtent,
+  }) : children = const <FWidget>[];
+
+  final List<FWidget> children;
+  final FIndexedWidgetBuilder? itemBuilder;
+  final FIndexedWidgetBuilder? separatorBuilder;
+  final int? itemCount;
+  final FLayoutAxis scrollDirection;
+  final FEdgeInsetsGeometry? padding;
+  final FScrollController? controller;
+  final FScrollPhysics? physics;
+  final bool reverse;
+  final bool? primary;
+  final double? cacheExtent;
+
+  @override
+  FWidget build(FBuildContext context) {
+    final axis = scrollDirection == FLayoutAxis.horizontal
+        ? fw.Axis.horizontal
+        : fw.Axis.vertical;
+    final separator = separatorBuilder;
+    if (separator != null) {
+      return fw.ListView.separated(
+        key: key,
+        itemBuilder: itemBuilder!,
+        separatorBuilder: separator,
+        itemCount: itemCount!,
+        scrollDirection: axis,
+        padding: padding,
+        controller: controller,
+        physics: physics,
+        reverse: reverse,
+        primary: primary,
+        cacheExtent: cacheExtent,
+      );
+    }
+    final builder = itemBuilder;
+    if (builder != null) {
+      return fw.ListView.builder(
+        key: key,
+        itemBuilder: builder,
+        itemCount: itemCount,
+        scrollDirection: axis,
+        padding: padding,
+        controller: controller,
+        physics: physics,
+        reverse: reverse,
+        primary: primary,
+        cacheExtent: cacheExtent,
+      );
+    }
+    return fw.ListView(
+      key: key,
+      scrollDirection: axis,
+      padding: padding,
+      controller: controller,
+      physics: physics,
+      reverse: reverse,
+      primary: primary,
+      cacheExtent: cacheExtent,
+      children: children,
+    );
+  }
 }
 
 /// FFrame table row description.

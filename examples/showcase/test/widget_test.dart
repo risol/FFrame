@@ -37,7 +37,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Require two factor authentication'), findsOneWidget);
     expect(tester.widget<FSwitch>(find.byType(FSwitch).first).value, isTrue);
-    await tester.tap(find.text('Require two factor authentication'));
+    await tester.tap(find.byType(FSwitch).first);
     await tester.pumpAndSettle();
     expect(tester.widget<FSwitch>(find.byType(FSwitch).first).value, isFalse);
     expect(tester.takeException(), isNull);
