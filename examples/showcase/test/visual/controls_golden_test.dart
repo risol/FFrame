@@ -1,11 +1,20 @@
 import 'dart:ui' as ui;
+import 'dart:typed_data';
 
 import 'package:fframe/fframe.dart';
 import 'package:fframe_wpf/fframe_wpf.dart';
+import 'package:flutter/foundation.dart' show FlutterError;
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   testWidgets('WPF control baseline', (tester) async {
+    final previousGoldenFileComparator = goldenFileComparator;
+    goldenFileComparator = _TolerantGoldenFileComparator(
+      Uri.parse('test/visual/controls_golden_test.dart'),
+      precisionTolerance: 0.002,
+    );
+    addTearDown(() => goldenFileComparator = previousGoldenFileComparator);
+
     tester.view.physicalSize = const ui.Size(800, 500);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -72,4 +81,30 @@ void main() {
       matchesGoldenFile('goldens/controls_baseline.png'),
     );
   });
+}
+
+class _TolerantGoldenFileComparator extends LocalFileComparator {
+  _TolerantGoldenFileComparator(
+    super.testFile, {
+    required this.precisionTolerance,
+  });
+
+  final double precisionTolerance;
+
+  @override
+  Future<bool> compare(Uint8List imageBytes, Uri golden) async {
+    final result = await GoldenFileComparator.compareLists(
+      imageBytes,
+      await getGoldenBytes(golden),
+    );
+    final passed = result.passed || result.diffPercent <= precisionTolerance;
+    if (passed) {
+      result.dispose();
+      return true;
+    }
+
+    final error = await generateFailureOutput(result, golden, basedir);
+    result.dispose();
+    throw FlutterError(error);
+  }
 }

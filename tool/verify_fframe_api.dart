@@ -7,12 +7,21 @@ final _forbiddenImport = RegExp(
 
 void main() {
   final violations = <String>[];
-  for (final entity in Directory('examples').listSync(recursive: true)) {
-    if (entity is! File || !entity.path.endsWith('.dart')) continue;
-    final path = entity.path.replaceAll('\\', '/');
-    if (!path.contains('/lib/') && !path.contains('/benchmark/')) continue;
-    final source = entity.readAsStringSync();
-    if (_forbiddenImport.hasMatch(source)) violations.add(path);
+  for (final example in Directory('examples').listSync(followLinks: false)) {
+    if (example is! Directory) continue;
+
+    for (final sourceDirectory in const ['lib', 'benchmark']) {
+      final sourceRoot = Directory('${example.path}/$sourceDirectory');
+      if (!sourceRoot.existsSync()) continue;
+
+      for (final entity
+          in sourceRoot.listSync(recursive: true, followLinks: false)) {
+        if (entity is! File || !entity.path.endsWith('.dart')) continue;
+        final path = entity.path.replaceAll('\\', '/');
+        final source = entity.readAsStringSync();
+        if (_forbiddenImport.hasMatch(source)) violations.add(path);
+      }
+    }
   }
 
   if (violations.isNotEmpty) {
