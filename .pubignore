@@ -1,0 +1,6 @@
+FFrame_Development_Plan.md
+build/
+example/build/
+.dart_tool/
+example/.dart_tool/
+.flutter-plugins-dependencies
