@@ -1550,7 +1550,7 @@ class _FTooltipState extends State<FTooltip> {
 
   void _hide() {
     _timer?.cancel();
-    _portal.hide();
+    if (_portal.isShowing) _portal.hide();
   }
 
   @override
